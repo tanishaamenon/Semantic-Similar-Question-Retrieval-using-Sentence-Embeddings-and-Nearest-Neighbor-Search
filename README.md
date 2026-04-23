@@ -2,48 +2,34 @@
 
 ## Overview
 
-This project implements a **semantic question retrieval system** that finds and retrieves questions similar in meaning to a user query using transformer-based sentence embeddings and nearest neighbor search.
-
-Instead of relying on simple keyword matching, the system captures **semantic similarity**, allowing it to retrieve paraphrased questions with different wording but similar intent.
+This project implements a semantic retrieval system that retrieves questions similar in meaning to a user query using transformer embeddings and nearest neighbor search. The model uses the Quora Question Pairs dataset and supports interactive query-based retrieval along with evaluation metrics.
 
 Example:
 
-**Query:**
-
 ```text
+Input Query:
 How do I motivate myself for exams?
-```
 
-**Retrieved Similar Questions:**
-
-```text
-How can students stay motivated while studying?
-Ways to increase concentration during exam preparation
-How do I avoid procrastination before exams?
+Retrieved Similar Questions:
+- How can students stay motivated while studying?
+- Ways to increase concentration during exam preparation
+- How do I avoid procrastination before exams?
 ```
 
 ---
 
 ## Features
 
-* Semantic Similarity Retrieval using Sentence-BERT embeddings
-* Nearest Neighbor Search using cosine similarity
-* Retrieval evaluation using Precision@K and similarity metrics
-* Real-world case study using Quora Question Pairs dataset
-* Interactive custom query testing
+* Semantic question retrieval using Sentence Transformers
+* Nearest Neighbor Search with cosine similarity
+* Interactive user query input
+* Jaccard similarity comparison between two queries
+* Retrieval evaluation using:
 
----
-
-## Problem Statement
-
-Online platforms often contain duplicate or semantically similar questions. Efficiently identifying and retrieving similar questions can:
-
-* Reduce duplicate content
-* Improve search efficiency
-* Reuse existing answers
-* Support intelligent question recommendation systems
-
-This project addresses this using semantic retrieval techniques.
+  * Precision@5
+  * Retrieval Accuracy
+  * Average Cosine Similarity
+  * Highest and Lowest Similarity
 
 ---
 
@@ -51,99 +37,113 @@ This project addresses this using semantic retrieval techniques.
 
 **Quora Question Pairs Dataset**
 
-Source: Kaggle
+Downloaded using KaggleHub.
 
-Contains:
+Contains question pairs from Quora spanning:
 
-* Question pairs
-* Duplicate/non-duplicate labels
-* Large variety of domains:
+* Education
+* Programming
+* Health
+* Finance
+* Career
+* General Knowledge
 
-  * Education
-  * Technology
-  * Health
-  * Career
-  * General Knowledge
+Subset used in project:
+
+```python
+10000 questions
+```
 
 ---
 
 ## Methodology
 
-### 1. Data Preprocessing
-
-* Load question pairs dataset
-* Merge question1 and question2
-* Remove null values
-* Select subset for indexing
-
-### 2. Semantic Embedding Generation
-
-Questions are converted into dense vector representations using:
+### Step 1 — Download Dataset
 
 ```python
-paraphrase-MiniLM-L6-v2
+path = kagglehub.dataset_download("quora/question-pairs-dataset")
 ```
 
-### 3. Nearest Neighbor Retrieval
+---
 
-A cosine similarity based nearest neighbor model retrieves the top-k most similar questions.
+### Step 2 — Load Question Corpus
 
-### 4. Evaluation
+Questions from both columns are merged:
 
-Model performance evaluated using:
+```python
+questions = pd.concat(
+[df["question1"], df["question2"]]
+).dropna().head(10000).tolist()
+```
 
-* Precision@K
+---
+
+### Step 3 — Generate Sentence Embeddings
+
+Embedding model used:
+
+```python
+all-mpnet-base-v2
+```
+
+This converts questions into dense semantic vectors.
+
+---
+
+### Step 4 — Nearest Neighbor Retrieval
+
+Retrieval model:
+
+```python
+nn = NearestNeighbors(
+    n_neighbors=6,
+    metric='cosine'
+)
+```
+
+Given a query, the model retrieves top similar questions.
+
+---
+
+### Step 5 — Similarity Evaluation
+
+Jaccard similarity:
+
+```python
+def jaccard_similarity(a,b):
+    A=set(a.lower().split())
+    B=set(b.lower().split())
+    return len(A&B)/len(A|B)
+```
+
+Threshold used:
+
+```python
+threshold = 0.40
+```
+
+---
+
+## Evaluation Metrics
+
+Project evaluates retrieval performance using:
+
+* Precision@5
 * Retrieval Accuracy
 * Average Cosine Similarity
+* Relevant Results Count
 
----
-
-## Tech Stack
-
-* Python
-* Pandas
-* Scikit-learn
-* Sentence Transformers
-* KaggleHub
-
----
-
-## Project Workflow
+Sample Output:
 
 ```text
-User Query
-   ↓
-Sentence Embedding
-   ↓
-Nearest Neighbor Search
-   ↓
-Top-K Similar Questions Retrieved
-```
+------ MODEL EVALUATION ------
 
----
-
-## Sample Results
-
-Example query:
-
-```text
-How can I learn python quickly?
-```
-
-Retrieved:
-
-```text
-How do I learn Python fast?
-Best way to study Python quickly
-How can I improve python skills?
-```
-
-Sample Evaluation:
-
-```text
-Precision@5 : 0.80
-Average Cosine Similarity : 0.79
-Retrieval Accuracy : 80%
+Precision@5: 0.80
+Retrieval Accuracy: 80.0%
+Average Cosine Similarity: 0.79
+Highest Similarity: 0.86
+Lowest Similarity: 0.68
+Relevant Results: 4 out of 5
 ```
 
 ---
@@ -156,16 +156,24 @@ pip install kagglehub pandas scikit-learn sentence-transformers
 
 ---
 
-## Run the Project
+## Running the Notebook
 
-```bash
-jupyter notebook
+Open:
+
+```text
+semantic_question_retrieval.ipynb
 ```
 
-Run the notebook cells and test with custom queries:
+Run all cells and enter a query when prompted:
 
-```python
-retrieve_similar("How do I improve concentration while studying?")
+```text
+Write a query to check other similar questions:
+```
+
+Example:
+
+```text
+How can I learn python quickly?
 ```
 
 ---
@@ -175,9 +183,21 @@ retrieve_similar("How do I improve concentration while studying?")
 ```text
 semantic-question-retrieval/
 │
-├── Semantic_Retrieval.ipynb
+├── semantic_question_retrieval.ipynb
+├── semantic_question_retrieval.py
 ├── README.md
 └── requirements.txt
+```
+
+---
+
+## Example Queries to Test
+
+```text
+How do I motivate myself for exams?
+How can I learn python quickly?
+How do I improve concentration while studying?
+What causes climate change?
 ```
 
 ---
@@ -186,20 +206,35 @@ semantic-question-retrieval/
 
 Possible applications include:
 
-* Duplicate question detection
-* Semantic search engines
-* FAQ retrieval systems
-* Educational query recommendation
-* Community forum search optimization
+* Duplicate Question Detection
+* Semantic Search Systems
+* FAQ Retrieval
+* Community Forum Search Optimization
+* Intelligent Query Recommendation
+
+---
+
+## Course Relevance
+
+Developed as a case study for:
+
+**Machine Learning Clustering and Retrieval (CA3)**
+
+Relevant topics covered:
+
+* Retrieval
+* Nearest Neighbor Search
+* Semantic Similarity Search
+* Approximate Similarity Thresholding
 
 ---
 
 ## Future Improvements
 
 * Add Locality Sensitive Hashing (LSH)
-* Scale using FAISS for large datasets
-* Improve ranking using transformer reranking
+* Scale retrieval using FAISS
 * Deploy as a Streamlit web app
+* Improve ranking using reranking models
 
 ---
 
